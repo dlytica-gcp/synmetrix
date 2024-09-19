@@ -1,5 +1,0 @@
-subscription VersionDoc($id: uuid!) {
-  versions_by_pk(id: $id) {
-    markdown_doc
-  }
-}
