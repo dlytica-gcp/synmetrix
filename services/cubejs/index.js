@@ -37,8 +37,30 @@ const dbType = ({ securityContext }) =>
 const contextToOrchestratorId = ({ securityContext }) =>
   `CUBEJS_APP_${securityContext?.userScope?.dataSource?.dataSourceVersion}_${securityContext?.userScope?.dataSource?.schemaVersion}}`;
 
-const contextToAppId = ({ securityContext }) =>
-  `CUBEJS_APP_${securityContext?.userScope?.dataSource?.dataSourceVersion}_${securityContext?.userScope?.dataSource?.schemaVersion}}`;
+// const contextToAppId = ({ securityContext }) =>
+//   `CUBEJS_APP_${securityContext?.userScope?.dataSource?.dataSourceVersion}_${securityContext?.userScope?.dataSource?.schemaVersion}}`;
+const contextToAppId: ({ securityContext }) => {
+    return securityContext.team;
+  };
+const extendContext: ({ securityContext }) => {
+    if (!securityContext.team) {
+      securityContext.team = "public";
+    }
+ 
+    return {
+      securityContext,
+    };
+  },
+const checkSqlAuth: (query, username) => {
+    const securityContext = {
+      team: username,
+    };
+ 
+    return {
+      password: process.env.CUBEJS_SQL_PASSWORD,
+      securityContext: securityContext,
+    };
+  },
 
 const schemaVersion = ({ securityContext }) =>
   securityContext?.userScope?.dataSource?.schemaVersion;
