@@ -8,7 +8,6 @@ import routes from "./src/routes/index.js";
 import { logging } from "./src/utils/logging.js";
 
 import { checkAuth } from "./src/utils/checkAuth.js";
-import checkSqlAuth from "./src/utils/checkSqlAuth.js";
 import driverFactory from "./src/utils/driverFactory.js";
 import queryRewrite from "./src/utils/queryRewrite.js";
 import repositoryFactory from "./src/utils/repositoryFactory.js";
@@ -32,35 +31,38 @@ const app = express();
 app.use(express.json({ limit: "50mb", extended: true }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// contextToAppId configuration
+const contextToAppId = ({ securityContext }) => {
+  return securityContext.team;
+};
+
+// extendContext configuration
+const extendContext = ({ securityContext }) => {
+  if (!securityContext.team) {
+    securityContext.team = "public";
+  }
+  return {
+    securityContext,
+  };
+};
+
+// checkSqlAuth configuration
+const checkSqlAuth = (query, username) => {
+  const securityContext = {
+    team: username,
+  };
+  return {
+    password: process.env.CUBEJS_SQL_PASSWORD,
+    securityContext: securityContext,
+  };
+};
+
+// dbType and other utility functions
 const dbType = ({ securityContext }) =>
   securityContext?.userScope?.dataSource?.dbType || "none";
-const contextToOrchestratorId = ({ securityContext }) =>
-  `CUBEJS_APP_${securityContext?.userScope?.dataSource?.dataSourceVersion}_${securityContext?.userScope?.dataSource?.schemaVersion}}`;
 
-// const contextToAppId = ({ securityContext }) =>
-//   `CUBEJS_APP_${securityContext?.userScope?.dataSource?.dataSourceVersion}_${securityContext?.userScope?.dataSource?.schemaVersion}}`;
-const contextToAppId: ({ securityContext }) => {
-    return securityContext.team;
-  };
-const extendContext: ({ securityContext }) => {
-    if (!securityContext.team) {
-      securityContext.team = "public";
-    }
- 
-    return {
-      securityContext,
-    };
-  },
-const checkSqlAuth: (query, username) => {
-    const securityContext = {
-      team: username,
-    };
- 
-    return {
-      password: process.env.CUBEJS_SQL_PASSWORD,
-      securityContext: securityContext,
-    };
-  },
+const contextToOrchestratorId = ({ securityContext }) =>
+  `CUBEJS_APP_${securityContext?.userScope?.dataSource?.dataSourceVersion}_${securityContext?.userScope?.dataSource?.schemaVersion}`;
 
 const schemaVersion = ({ securityContext }) =>
   securityContext?.userScope?.dataSource?.schemaVersion;
@@ -79,6 +81,7 @@ const basePath = `/api`;
 const options = {
   queryRewrite,
   contextToAppId,
+  extendContext,
   contextToOrchestratorId,
   dbType,
   devServer: false,
@@ -125,7 +128,6 @@ if (String(CUBEJS_SQL_API) === "true") {
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
-
   res.status(500).send(err.message);
 });
 
